@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>– Virtual Jewelry Try-On</title>
+    <meta name="description"
+        content="Real-time browser-based virtual jewelry try-on. Try rings, bracelets, and necklaces instantly using your webcam – no download required." />
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+        href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;500;600&family=Inter:wght@300;400;500;600&display=swap"
+        rel="stylesheet" />
+
+    <!-- MediaPipe – pinned versions (MUST match locateFile versions in main.js) -->
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils@0.3.1675466862/camera_utils.js"
+        crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils@0.3.1675466124/drawing_utils.js"
+        crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4.1646424915/hands.js"
+        crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh@0.4.1633559619/face_mesh.js"
+        crossorigin="anonymous"></script>
+
+    <link rel="stylesheet" href="styles.css" />
+</head>
+
+<body>
+
+    <!-- ============================================================
+       HEADER
+  ============================================================ -->
+    <header class="header">
+        <div class="header-inner">
+            <div class="logo">
+                <span class="logo-icon">◆</span>
+                <span class="logo-text">Virtual Tryon</span>
+            </div>
+            <p class="logo-tagline">Virtual Jewelry Try-On</p>
+        </div>
+    </header>
+
+    <!-- ============================================================
+       MAIN LAYOUT
+  ============================================================ -->
+    <main class="app-layout">
+
+        <!-- LEFT PANEL – Controls -->
+        <aside class="panel panel-left" id="panel-left">
+
+            <div class="panel-section">
+                <h3 class="panel-title">JEWELRY TYPE</h3>
+                <div class="toggle-group" id="jewelry-toggles">
+                    <button class="toggle-btn active" id="btn-ring" data-type="ring">
+                        <span class="toggle-icon">💍</span> Ring
+                    </button>
+                    <button class="toggle-btn" id="btn-bracelet" data-type="bracelet">
+                        <span class="toggle-icon">📿</span> Bracelet
+                    </button>
+                    <button class="toggle-btn" id="btn-necklace" data-type="necklace">
+                        <span class="toggle-icon">✨</span> Necklace
+                    </button>
+                    <button class="toggle-btn" id="btn-earrings" data-type="earrings">
+                        <span class="toggle-icon">🪙</span> Earrings
+                    </button>
+                </div>
+            </div>
+
+            <div class="panel-section">
+                <h3 class="panel-title">STYLE</h3>
+                <div class="style-grid" id="style-grid">
+                    <!-- Populated by JS -->
+                </div>
+            </div>
+
+            <div class="panel-section">
+                <h3 class="panel-title">SETTINGS</h3>
+                <div class="settings-list">
+
+                    <div class="setting-row">
+                        <label for="scale-slider">Size Adjust</label>
+                        <input type="range" id="scale-slider" min="60" max="160" value="100" class="slider" />
+                        <span class="slider-val" id="scale-val">100%</span>
+                    </div>
+
+                    <div class="setting-row">
+                        <label for="opacity-slider">Opacity</label>
+                        <input type="range" id="opacity-slider" min="30" max="100" value="95" class="slider" />
+                        <span class="slider-val" id="opacity-val">95%</span>
+                    </div>
+
+                    <div class="setting-row toggle-row">
+                        <label>Occlusion</label>
+                        <label class="switch">
+                            <input type="checkbox" id="occlusion-toggle" checked />
+                            <span class="switch-slider"></span>
+                        </label>
+                    </div>
+
+                    <div class="setting-row toggle-row">
+                        <label>Debug Landmarks</label>
+                        <label class="switch">
+                            <input type="checkbox" id="debug-toggle" />
+                            <span class="switch-slider"></span>
+                        </label>
+                    </div>
+
+                </div>
+            </div>
+
+            <div class="panel-section">
+                <h3 class="panel-title">UPLOAD JEWELRY</h3>
+                <label class="upload-btn" for="upload-input">
+                    <span>⬆ Upload Image</span>
+                    <input type="file" id="upload-input" accept="image/*" hidden />
+                </label>
+            </div>
+
+        </aside>
+
+        <!-- CENTER – Camera View -->
+        <section class="camera-section">
+            <div class="camera-wrapper" id="camera-wrapper">
+
+                <!-- Hidden real video element -->
+                <video id="webcam-video" autoplay muted playsinline></video>
+
+                <!-- Main compositing canvas -->
+                <canvas id="output-canvas"></canvas>
+
+                <!-- Overlay states -->
+                <div class="cam-overlay" id="cam-loading">
+                    <div class="spinner"></div>
+                    <p>Initialising Models…</p>
+                </div>
+
+                <div class="cam-overlay hidden" id="cam-noperm">
+                    <div class="overlay-icon">📷</div>
+                    <p>Camera permission denied.</p>
+                    <button class="retry-btn" id="retry-btn">Retry</button>
+                </div>
+
+                <!-- Status Badge -->
+                <div class="status-badge" id="status-badge">
+                    <span class="status-dot" id="status-dot"></span>
+                    <span id="status-text">Loading…</span>
+                </div>
+
+                <!-- FPS Counter -->
+                <div class="fps-counter" id="fps-counter">– FPS</div>
+
+            </div>
+
+            <!-- Bottom action bar -->
+            <div class="action-bar">
+                <button class="action-btn" id="snapshot-btn" title="Take Snapshot">
+                    📸 Snapshot
+                </button>
+                <button class="action-btn" id="mirror-btn" title="Toggle Mirror">
+                    ↔ Mirror
+                </button>
+                <button class="action-btn danger" id="stop-btn" title="Stop Camera">
+                    ⏹ Stop
+                </button>
+            </div>
+        </section>
+
+        <!-- RIGHT PANEL – Info / Preview -->
+        <aside class="panel panel-right" id="panel-right">
+
+            <div class="panel-section">
+                <h3 class="panel-title">LIVE PREVIEW</h3>
+                <div class="preview-box" id="preview-thumb">
+                    <canvas id="thumb-canvas" width="200" height="150"></canvas>
+                    <p class="preview-hint">Snapshot will appear here</p>
+                </div>
+                <button class="download-btn hidden" id="download-btn">⬇ Save Image</button>
+            </div>
+
+            <div class="panel-section">
+                <h3 class="panel-title">TRACKING INFO</h3>
+                <div class="info-list" id="info-list">
+                    <div class="info-row"><span>Hands</span><span id="info-hands">–</span></div>
+                    <div class="info-row"><span>Face</span><span id="info-face">–</span></div>
+                    <div class="info-row"><span>Ring Finger</span><span id="info-finger">–</span></div>
+                    <div class="info-row"><span>Wrist Width</span><span id="info-wrist">–</span></div>
+                    <div class="info-row"><span>Jaw Width</span><span id="info-jaw">–</span></div>
+                </div>
+            </div>
+
+            <div class="panel-section">
+                <h3 class="panel-title">HOW TO USE</h3>
+                <ol class="how-to">
+                    <li>Allow camera access when prompted.</li>
+                    <li>Select a jewelry type (Ring / Bracelet / Necklace).</li>
+                    <li>Hold your hand steady in front of the camera.</li>
+                    <li>Adjust size &amp; opacity with the sliders.</li>
+                    <li>Take a snapshot to save your look.</li>
+                </ol>
+            </div>
+
+        </aside>
+
+    </main>
+
+    <!-- ============================================================
+       SNAPSHOT MODAL
+  ============================================================ -->
+    <div class="modal hidden" id="snapshot-modal">
+        <div class="modal-box">
+            <button class="modal-close" id="modal-close">✕</button>
+            <h2>Your Look</h2>
+            <img id="modal-img" src="" alt="Snapshot" />
+            <div class="modal-actions">
+                <a id="modal-download" download="virtual-tryon-snapshot.png" class="action-btn">⬇ Download</a>
+                <button class="action-btn" id="modal-retry">Try Again</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="main.js"></script>
+</body>
+
+</html>
