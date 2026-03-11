@@ -2,6 +2,8 @@
   "name": "luxar-vto",
   "version": "1.0.0",
   "description": "Browser-based Virtual Jewelry Try-On using MediaPipe",
+  "private": true,
+  "type": "commonjs",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
@@ -11,6 +13,6 @@
     "express": "^4.18.2"
   },
   "engines": {
-    "node": ">=18.0.0"
+    "node": "18.x"
   }
 }
