@@ -1,22 +1,23 @@
+# Use lightweight Node image
 FROM node:18-slim
 
 # Set working directory
 WORKDIR /usr/src/app
 
-# Copy package files
+# Copy package files first (for Docker cache efficiency)
 COPY package*.json ./
 
-# Install production dependencies
+# Install dependencies
 RUN npm install --omit=dev
 
-# Copy project files
+# Copy all project files
 COPY . .
 
-# Railway uses dynamic port
-ENV PORT=3000
+# Railway provides PORT automatically
+# Do NOT override it
 
-# Expose container port
-EXPOSE 3000
+# Expose generic port (Railway maps internally)
+EXPOSE 8080
 
-# Start the server
-CMD ["node", "server.js"]
+# Start server
+CMD ["npm", "start"]
