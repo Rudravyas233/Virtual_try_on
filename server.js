@@ -3,15 +3,11 @@
  * ---------
  * Minimal Express server for LuxAR VTO on Railway.
  *
- * WHY THIS EXISTS:
- * MediaPipe WASM uses SharedArrayBuffer which requires these headers
- * or browsers block WASM threads and models fail.
- *
- * Required headers:
+ * MediaPipe WASM uses SharedArrayBuffer which requires:
  *   Cross-Origin-Opener-Policy: same-origin
  *   Cross-Origin-Embedder-Policy: require-corp
  *
- * Additional header added for CDN compatibility:
+ * Additional header:
  *   Cross-Origin-Resource-Policy: cross-origin
  */
 
@@ -19,7 +15,10 @@ const express = require('express');
 const path = require('path');
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 8080;
+
+// Resolve project root
+const ROOT_DIR = path.resolve(__dirname);
 
 // ── Security headers required for MediaPipe WASM / SharedArrayBuffer ──────────
 app.use((req, res, next) => {
@@ -40,14 +39,29 @@ app.use((req, res, next) => {
 });
 
 // ── Serve static files from project root ──────────────────────────────────────
-app.use(express.static(path.join(__dirname, '.'), {
-    maxAge: '1d',
-    index: 'index.html',
+app.use(express.static(ROOT_DIR, {
+    maxAge: '1d'
 }));
 
-// ── SPA fallback – always return index.html ───────────────────────────────────
+// ── Healthcheck endpoint (Railway / monitoring) ───────────────────────────────
+app.get('/health', (req, res) => {
+    res.status(200).send('OK');
+});
+
+// ── Root route ────────────────────────────────────────────────────────────────
+app.get('/', (req, res) => {
+    res.sendFile(path.join(ROOT_DIR, 'index.html'));
+});
+
+// ── SPA fallback – return index.html for other routes ─────────────────────────
 app.get('*', (req, res) => {
-    res.sendFile(path.join(__dirname, 'index.html'));
+    res.sendFile(path.join(ROOT_DIR, 'index.html'));
+});
+
+// ── Basic error handler ───────────────────────────────────────────────────────
+app.use((err, req, res, next) => {
+    console.error('[LuxAR ERROR]', err);
+    res.status(500).send('Server Error');
 });
 
 // ── Start server ──────────────────────────────────────────────────────────────
