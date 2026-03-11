@@ -375,8 +375,7 @@ class HandTracker {
   async init(onResults) {
     this._hands = new Hands({
       locateFile: (file) => {
-        // Unique query param prevents WASM binary namespace clash with FaceMesh
-        return `https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4.1646424915/${file}?v=hands`;
+        return `https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4/${file}`;
       },
     });
 
@@ -428,7 +427,7 @@ class FaceTracker {
     this._mesh = new FaceMesh({
       locateFile: (file) => {
         // Unique query param prevents WASM binary namespace clash with Hands
-        return `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh@0.4.1633559619/${file}?v=face`;
+        return `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh@0.4.1633559619/${file}`;
       },
     });
 
@@ -1226,3 +1225,4 @@ window.addEventListener('DOMContentLoaded', () => {
     console.error('[VTOApp]', err);
   });
 });
+
